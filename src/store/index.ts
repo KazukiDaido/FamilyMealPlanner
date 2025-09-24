@@ -8,6 +8,7 @@ import userSlice from './slices/userSlice';
 import familySlice from './slices/familySlice';
 import mealSlice from './slices/mealSlice';
 import shoppingSlice from './slices/shoppingSlice';
+import attendanceSlice from './slices/attendanceSlice';
 
 // Redux Persist設定
 const persistConfig = {
@@ -21,6 +22,7 @@ const rootReducer = combineReducers({
   user: userSlice,
   family: familySlice,
   meals: mealSlice,
+  attendance: attendanceSlice,
   shopping: shoppingSlice,
 });
 

@@ -10,6 +10,7 @@ import { StatusBar } from 'expo-status-bar';
 // 画面のインポート
 import HomeScreen from './src/screens/Home/HomeScreen';
 import SettingsScreen from './src/screens/Settings/SettingsScreen';
+import ScheduleScreen from './src/screens/Schedule/ScheduleScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -53,6 +54,16 @@ export default function App() {
                 title: '設定',
                 tabBarIcon: ({ color, size }) => (
                   <Text style={{ fontSize: size, color }}>⚙️</Text>
+                ),
+              }}
+            />
+            <Tab.Screen
+              name="Schedule"
+              component={ScheduleScreen}
+              options={{
+                title: 'スケジュール',
+                tabBarIcon: ({ color, size }) => (
+                  <Text style={{ fontSize: size, color }}>📅</Text>
                 ),
               }}
             />

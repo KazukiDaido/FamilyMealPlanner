@@ -29,6 +29,18 @@ export interface MealSchedule {
   updatedAt: Date;
 }
 
+// 出欠（いる/いらない）
+export type AttendanceStatus = 'need' | 'skip';
+
+export interface Attendance {
+  id: string;
+  date: string; // YYYY-MM-DD
+  mealType: 'dinner';
+  userId: string;
+  status: AttendanceStatus;
+  updatedAt: Date;
+}
+
 // 買い物リストアイテム
 export interface ShoppingItem {
   id: string;
