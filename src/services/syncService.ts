@@ -1,5 +1,5 @@
 import QRCode from 'react-native-qrcode-svg';
-import Share from 'react-native-share';
+// import Share from 'react-native-share'; // Web環境では使用不可
 import { StorageService } from './storageService';
 import { User, Family, MealSchedule, ShoppingList } from '../types';
 
@@ -162,18 +162,27 @@ export class SyncService {
     }
   }
 
-  // ファイル共有でデータをエクスポート
+  // ファイル共有でデータをエクスポート（Web対応）
   static async exportDataToFile(): Promise<void> {
     try {
       const data = await StorageService.exportData();
-      const shareOptions = {
-        title: '家族食事スケジュールデータ',
-        message: '家族の食事スケジュールデータを共有します',
-        url: `data:text/plain;base64,${Buffer.from(data).toString('base64')}`,
-        type: 'text/plain',
-      };
-
-      await Share.open(shareOptions);
+      
+      // Web環境での共有処理
+      if (typeof window !== 'undefined') {
+        // ブラウザでダウンロード
+        const blob = new Blob([data], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'family-meal-data.json';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        // モバイル環境（実装時に追加）
+        throw new Error('Mobile export not implemented yet');
+      }
     } catch (error) {
       console.error('Failed to export data to file:', error);
       throw error;
