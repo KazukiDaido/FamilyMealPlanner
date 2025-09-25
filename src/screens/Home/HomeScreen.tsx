@@ -5,6 +5,8 @@ import { RootState } from '../../store';
 import { useFirebaseAttendance } from '../../hooks/useFirebaseAttendance';
 import { firestoreService } from '../../services/firestoreService';
 import { FirebaseUser } from '../../types/firebase';
+import { MealType } from '../../types';
+import { MealSettingsService } from '../../services/mealSettingsService';
 // import Share from 'react-native-share'; // Web環境では使用不可
 import { colors, typography, spacing, borderRadius, shadows } from '../../styles/designSystem';
 import Button from '../../components/ui/Button';
@@ -15,6 +17,7 @@ import { XIcon, CheckIcon, ShareIcon } from '../../components/ui/Icons';
 
 const HomeScreen: React.FC = () => {
   const { firebaseUser } = useSelector((state: RootState) => state.user);
+  const { settings: mealSettings } = useSelector((state: RootState) => state.mealSettings);
   const { updateAttendance } = useFirebaseAttendance();
   const [familyMembers, setFamilyMembers] = useState<FirebaseUser[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,28 +43,31 @@ const HomeScreen: React.FC = () => {
     loadFamilyMembers();
   }, [firebaseUser?.familyId]);
 
-  const buildMessage = (needDinner: boolean) => {
+  const buildMessage = (mealType: MealType, needMeal: boolean) => {
     const today = new Date();
     const dateText = `${today.getMonth() + 1}/${today.getDate()}`;
-    return needDinner
-      ? `${displayName}です。${dateText}の晩ごはん、必要です！`
-      : `${displayName}です。${dateText}の晩ごはん、今日はいりません！`;
+    const mealName = MealSettingsService.getMealTypeName(mealType, mealSettings.customMealTypes);
+    const mealEmoji = MealSettingsService.getMealTypeEmoji(mealType, undefined, mealSettings.customMealTypes);
+    
+    return needMeal
+      ? `${displayName}です。${dateText}の${mealName}${mealEmoji}、必要です！`
+      : `${displayName}です。${dateText}の${mealName}${mealEmoji}、今日はいりません！`;
   };
 
-  const handleAttendanceUpdate = async (needDinner: boolean) => {
+  const handleAttendanceUpdate = async (mealType: MealType, needMeal: boolean) => {
     if (!firebaseUser?.id) return;
 
     setIsLoading(true);
     try {
       const today = new Date().toISOString().slice(0, 10);
-      const status = needDinner ? 'present' : 'absent';
-      
+      const status = needMeal ? 'present' : 'absent';
+
       // Firebaseに出欠情報を保存
-      await updateAttendance(today, 'dinner', status);
-      
+      await updateAttendance(today, mealType, status);
+
       // 共有メッセージも送信
-      const message = buildMessage(needDinner);
-      
+      const message = buildMessage(mealType, needMeal);
+
       // Web環境での共有処理
       if (typeof window !== 'undefined' && navigator.share) {
         await navigator.share({
@@ -120,41 +126,48 @@ const HomeScreen: React.FC = () => {
           </View>
         </View>
 
-      {/* Quick Actions */}
-      <Card variant="elevated" padding="large" style={styles.actionCard}>
-        <Text style={styles.cardTitle}>今夜のごはん</Text>
-        <Text style={styles.cardSubtitle}>ワンタップで家族に連絡</Text>
-        
-        <View style={styles.buttonContainer}>
-          <Button
-            title="今日はいらない"
-            onPress={() => {
-              showNameTip();
-              handleAttendanceUpdate(false);
-            }}
-            variant="secondary"
-            size="large"
-            style={styles.actionButton}
-            icon={<XIcon size={20} color={colors.error} />}
-            loading={isLoading}
-            disabled={isLoading}
-          />
-          
-          <Button
-            title="いるよ"
-            onPress={() => {
-              showNameTip();
-              handleAttendanceUpdate(true);
-            }}
-            variant="primary"
-            size="large"
-            style={styles.actionButton}
-            icon={<CheckIcon size={20} color={colors.textDark} />}
-            loading={isLoading}
-            disabled={isLoading}
-          />
-        </View>
-      </Card>
+            {/* Quick Actions for Default Meal Types */}
+            {mealSettings.defaultMealTypes.map((mealType) => {
+              const mealName = MealSettingsService.getMealTypeName(mealType, mealSettings.customMealTypes);
+              const mealEmoji = MealSettingsService.getMealTypeEmoji(mealType, undefined, mealSettings.customMealTypes);
+              
+              return (
+                <Card key={mealType} variant="elevated" padding="large" style={styles.actionCard}>
+                  <Text style={styles.cardTitle}>{mealEmoji} {mealName}</Text>
+                  <Text style={styles.cardSubtitle}>ワンタップで家族に連絡</Text>
+
+                  <View style={styles.buttonContainer}>
+                    <Button
+                      title="今日はいらない"
+                      onPress={() => {
+                        showNameTip();
+                        handleAttendanceUpdate(mealType, false);
+                      }}
+                      variant="secondary"
+                      size="large"
+                      style={styles.actionButton}
+                      icon={<XIcon size={20} color={colors.error} />}
+                      loading={isLoading}
+                      disabled={isLoading}
+                    />
+
+                    <Button
+                      title="いるよ"
+                      onPress={() => {
+                        showNameTip();
+                        handleAttendanceUpdate(mealType, true);
+                      }}
+                      variant="primary"
+                      size="large"
+                      style={styles.actionButton}
+                      icon={<CheckIcon size={20} color={colors.textDark} />}
+                      loading={isLoading}
+                      disabled={isLoading}
+                    />
+                  </View>
+                </Card>
+              );
+            })}
 
       {/* Family Status */}
       {familyMembers.length > 0 && (

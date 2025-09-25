@@ -6,6 +6,8 @@ import { toggleAttendance } from '../../store/slices/attendanceSlice';
 import { useFirebaseAttendance } from '../../hooks/useFirebaseAttendance';
 import { firestoreService } from '../../services/firestoreService';
 import { FirebaseUser } from '../../types/firebase';
+import { MealType } from '../../types';
+import { MealSettingsService } from '../../services/mealSettingsService';
 import { colors, typography, spacing, borderRadius, shadows } from '../../styles/designSystem';
 import Card from '../../components/ui/Card';
 import Avatar from '../../components/ui/Avatar';
@@ -46,6 +48,7 @@ function getScheduleDays() {
 const ScheduleScreen: React.FC = () => {
   const dispatch = useDispatch();
   const { firebaseUser } = useSelector((state: RootState) => state.user);
+  const { settings: mealSettings } = useSelector((state: RootState) => state.mealSettings);
   const { records: attendance, updateAttendance } = useFirebaseAttendance();
   const [familyMembers, setFamilyMembers] = useState<FirebaseUser[]>([]);
   const [showCalendar, setShowCalendar] = useState(false);
@@ -105,8 +108,8 @@ const ScheduleScreen: React.FC = () => {
   const days = useMemo(() => getScheduleDays(), []);
   const ymds = days.map(formatYmd);
 
-  const getStatus = (date: string, userId: string) => {
-    const record = attendance.find(a => a.date === date && a.userId === userId && a.mealType === 'dinner');
+  const getStatus = (date: string, userId: string, mealType: MealType) => {
+    const record = attendance.find(a => a.date === date && a.userId === userId && a.mealType === mealType);
     return record?.status === 'present' ? 'need' : 'skip';
   };
 
@@ -157,12 +160,12 @@ const ScheduleScreen: React.FC = () => {
     return dateStr;
   };
 
-  const getAttendingMembers = (date: string) => {
-    return familyMembers.filter(member => getStatus(date, member.id) === 'need');
+  const getAttendingMembers = (date: string, mealType: MealType) => {
+    return familyMembers.filter(member => getStatus(date, member.id, mealType) === 'need');
   };
 
-  const getAbsentMembers = (date: string) => {
-    return familyMembers.filter(member => getStatus(date, member.id) === 'skip');
+  const getAbsentMembers = (date: string, mealType: MealType) => {
+    return familyMembers.filter(member => getStatus(date, member.id, mealType) === 'skip');
   };
 
   // 日付をハイライトする
@@ -238,9 +241,9 @@ const ScheduleScreen: React.FC = () => {
       <View style={styles.fixedHeader}>
         <View style={styles.statusBar} />
         <View style={styles.headerContent}>
-          <View style={styles.titleSection}>
-            <Text style={styles.title}>晩ごはんスケジュール</Text>
-          </View>
+                 <View style={styles.titleSection}>
+                   <Text style={styles.title}>食事スケジュール</Text>
+                 </View>
           
           {/* Navigation Buttons */}
           <View style={styles.navigationButtons}>
@@ -278,8 +281,6 @@ const ScheduleScreen: React.FC = () => {
         </Card>
       ) : (
         ymds.map((date, index) => {
-          const attendingMembers = getAttendingMembers(date);
-          const absentMembers = getAbsentMembers(date);
           const isToday_ = isToday(date);
           const isPast = isPastDate(date);
           const isSelected = selectedDate === date;
@@ -319,64 +320,80 @@ const ScheduleScreen: React.FC = () => {
                 {isToday_ && <View style={styles.todayBadge}><Text style={styles.todayBadgeText}>今日</Text></View>}
               </View>
 
-              {/* Attendance Status */}
-              <View style={styles.attendanceStatus}>
-                {/* Attending Members */}
-                {attendingMembers.length > 0 && (
-                  <View style={styles.statusSection}>
-                    <View style={styles.statusHeader}>
-                      <CheckIcon size={16} color={colors.attendance.present} />
-                      <Text style={styles.statusLabel}>参加 ({attendingMembers.length}人)</Text>
-                    </View>
-                    <View style={styles.membersList}>
-                      {attendingMembers.map(member => (
-                        <TouchableOpacity
-                          key={member.id}
-                          style={[styles.memberChip, styles.attendingChip]}
-                          onPress={async () => {
-                            await updateAttendance(date, 'dinner', 'absent');
-                          }}
-                        >
-                          <Avatar name={member.name} size="small" />
-                          <Text style={styles.memberChipText}>{member.name}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                )}
+              {/* Meal Types */}
+              <View style={styles.mealsContainer}>
+                {mealSettings.enabledMealTypes.map((mealType) => {
+                  const attendingMembers = getAttendingMembers(date, mealType);
+                  const absentMembers = getAbsentMembers(date, mealType);
+                  const mealName = MealSettingsService.getMealTypeName(mealType, mealSettings.customMealTypes);
+                  const mealEmoji = MealSettingsService.getMealTypeEmoji(mealType, undefined, mealSettings.customMealTypes);
 
-                {/* Absent Members */}
-                {absentMembers.length > 0 && (
-                  <View style={styles.statusSection}>
-                    <View style={styles.statusHeader}>
-                      <XIcon size={16} color={colors.attendance.absent} />
-                      <Text style={styles.statusLabel}>不参加 ({absentMembers.length}人)</Text>
-                    </View>
-                    <View style={styles.membersList}>
-                      {absentMembers.map(member => (
-                        <TouchableOpacity
-                          key={member.id}
-                          style={[styles.memberChip, styles.absentChip]}
-                          onPress={async () => {
-                            await updateAttendance(date, 'dinner', 'present');
-                          }}
-                        >
-                          <Avatar name={member.name} size="small" />
-                          <Text style={styles.memberChipText}>{member.name}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
-                )}
+                  return (
+                    <View key={mealType} style={styles.mealSection}>
+                      <Text style={styles.mealTitle}>{mealEmoji} {mealName}</Text>
+                      
+                      {/* Attendance Status */}
+                      <View style={styles.attendanceStatus}>
+                        {/* Attending Members */}
+                        {attendingMembers.length > 0 && (
+                          <View style={styles.statusSection}>
+                            <View style={styles.statusHeader}>
+                              <CheckIcon size={14} color={colors.attendance.present} />
+                              <Text style={styles.statusLabel}>参加 ({attendingMembers.length}人)</Text>
+                            </View>
+                            <View style={styles.membersList}>
+                              {attendingMembers.map(member => (
+                                <TouchableOpacity
+                                  key={member.id}
+                                  style={[styles.memberChip, styles.attendingChip]}
+                                  onPress={async () => {
+                                    await updateAttendance(date, mealType, 'absent');
+                                  }}
+                                >
+                                  <Avatar name={member.name} size="small" />
+                                  <Text style={styles.memberChipText}>{member.name}</Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          </View>
+                        )}
 
-                {/* No Status Members */}
-                {familyMembers.length > attendingMembers.length + absentMembers.length && (
-                  <View style={styles.statusSection}>
-                    <Text style={styles.noStatusText}>
-                      未設定: {familyMembers.length - attendingMembers.length - absentMembers.length}人
-                    </Text>
-                  </View>
-                )}
+                        {/* Absent Members */}
+                        {absentMembers.length > 0 && (
+                          <View style={styles.statusSection}>
+                            <View style={styles.statusHeader}>
+                              <XIcon size={14} color={colors.attendance.absent} />
+                              <Text style={styles.statusLabel}>不参加 ({absentMembers.length}人)</Text>
+                            </View>
+                            <View style={styles.membersList}>
+                              {absentMembers.map(member => (
+                                <TouchableOpacity
+                                  key={member.id}
+                                  style={[styles.memberChip, styles.absentChip]}
+                                  onPress={async () => {
+                                    await updateAttendance(date, mealType, 'present');
+                                  }}
+                                >
+                                  <Avatar name={member.name} size="small" />
+                                  <Text style={styles.memberChipText}>{member.name}</Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          </View>
+                        )}
+
+                        {/* No Status Members */}
+                        {familyMembers.length > attendingMembers.length + absentMembers.length && (
+                          <View style={styles.statusSection}>
+                            <Text style={styles.noStatusText}>
+                              未設定: {familyMembers.length - attendingMembers.length - absentMembers.length}人
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
             </Card>
           );
@@ -524,10 +541,26 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   
-  // Attendance Status
-  attendanceStatus: {
-    gap: spacing.md,
-  },
+   // Meals Container
+   mealsContainer: {
+     gap: spacing.lg,
+   },
+   mealSection: {
+     paddingBottom: spacing.md,
+     borderBottomWidth: 1,
+     borderBottomColor: colors.border,
+   },
+   mealTitle: {
+     ...typography.callout,
+     color: colors.text,
+     fontWeight: '700',
+     marginBottom: spacing.sm,
+   },
+
+   // Attendance Status
+   attendanceStatus: {
+     gap: spacing.md,
+   },
   statusSection: {
     gap: spacing.sm,
   },
