@@ -9,6 +9,7 @@ import { colors, typography, spacing, borderRadius } from '../../styles/designSy
 import GradientBackground from '../../components/ui/GradientBackground';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import EmojiPicker from '../../components/ui/EmojiPicker';
 import { MealType, CustomMealType } from '../../types';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -213,7 +214,7 @@ const MealSettingsScreen: React.FC = () => {
             onPress={() => {
               setEditingCustomMeal(null);
               setCustomMealName('');
-              setCustomMealEmoji('');
+              setCustomMealEmoji('🍽️'); // デフォルトの絵文字を設定
               setIsCustomMealModalVisible(true);
             }}
             variant="secondary"
@@ -251,12 +252,9 @@ const MealSettingsScreen: React.FC = () => {
               value={customMealName}
               onChangeText={setCustomMealName}
             />
-            <TextInput
-              style={styles.textInput}
-              placeholder="絵文字 (例: 🌙)"
-              value={customMealEmoji}
-              onChangeText={setCustomMealEmoji}
-              maxLength={2} // 絵文字は通常1-2文字
+            <EmojiPicker
+              selectedEmoji={customMealEmoji}
+              onEmojiSelect={setCustomMealEmoji}
             />
             <View style={styles.modalButtons}>
               <Button title="キャンセル" onPress={() => setIsCustomMealModalVisible(false)} variant="secondary" />
@@ -393,6 +391,7 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     width: '90%',
     maxWidth: 400,
+    maxHeight: '80%', // 高さを制限
     shadowColor: colors.overlay,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
