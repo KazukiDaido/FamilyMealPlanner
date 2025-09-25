@@ -140,6 +140,77 @@ export class MealSettingsService {
   }
 
   /**
+   * 食事タイプの有効/無効を切り替える
+   */
+  static toggleMealType(currentSettings: FamilyMealSettings, mealType: MealType): FamilyMealSettings {
+    const newEnabled = currentSettings.enabledMealTypes.includes(mealType)
+      ? currentSettings.enabledMealTypes.filter(m => m !== mealType)
+      : [...currentSettings.enabledMealTypes, mealType];
+
+    if (newEnabled.length === 0) {
+      throw new Error('少なくとも1つの食事タイプを有効にする必要があります。');
+    }
+
+    return { ...currentSettings, enabledMealTypes: newEnabled };
+  }
+
+  /**
+   * カスタム食事タイプを追加
+   */
+  static addCustomMealType(currentSettings: FamilyMealSettings, name: string, emoji: string): FamilyMealSettings {
+    const newCustomMeal: CustomMealType = {
+      id: `custom_${Date.now()}`,
+      name,
+      emoji,
+      order: currentSettings.customMealTypes.length + 100,
+      isActive: true,
+    };
+    return {
+      ...currentSettings,
+      customMealTypes: [...currentSettings.customMealTypes, newCustomMeal],
+      enabledMealTypes: [...currentSettings.enabledMealTypes, 'custom'],
+    };
+  }
+
+  /**
+   * カスタム食事タイプを更新
+   */
+  static updateCustomMealType(currentSettings: FamilyMealSettings, updatedMeal: CustomMealType): FamilyMealSettings {
+    const updatedCustoms = currentSettings.customMealTypes.map(meal =>
+      meal.id === updatedMeal.id ? updatedMeal : meal
+    );
+    return { ...currentSettings, customMealTypes: updatedCustoms };
+  }
+
+  /**
+   * カスタム食事タイプを削除
+   */
+  static deleteCustomMealType(currentSettings: FamilyMealSettings, mealId: string): FamilyMealSettings {
+    const filteredCustoms = currentSettings.customMealTypes.filter(meal => meal.id !== mealId);
+    return {
+      ...currentSettings,
+      customMealTypes: filteredCustoms,
+    };
+  }
+
+  /**
+   * 有効な食事タイプを順序付きで取得
+   */
+  static getOrderedMealTypes(settings: FamilyMealSettings): Array<{ id: string; name: string; emoji: string; order: number; isActive: boolean }> {
+    const standardMeals = [
+      { id: 'breakfast', name: '朝食', emoji: '🍳', order: 1, isActive: true },
+      { id: 'lunch', name: '昼食', emoji: '🥪', order: 2, isActive: true },
+      { id: 'dinner', name: '夕食', emoji: '🍜', order: 3, isActive: true },
+      { id: 'snack', name: 'おやつ', emoji: '🍪', order: 4, isActive: true },
+      { id: 'bento', name: 'お弁当', emoji: '🍱', order: 5, isActive: true },
+    ].filter(meal => settings.enabledMealTypes.includes(meal.id as MealType));
+
+    const customMeals = settings.customMealTypes.filter(meal => meal.isActive);
+
+    return [...standardMeals, ...customMeals].sort((a, b) => a.order - b.order);
+  }
+
+  /**
    * 設定の妥当性をチェック
    */
   static validateSettings(settings: FamilyMealSettings): boolean {

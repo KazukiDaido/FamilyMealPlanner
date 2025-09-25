@@ -4,7 +4,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
 import { setMealSettings, addCustomMealType, updateCustomMealType, deleteCustomMealType } from '../../store/slices/mealSettingsSlice';
-import { mealSettingsService } from '../../services/mealSettingsService';
+import { MealSettingsService } from '../../services/mealSettingsService';
 import { colors, typography, spacing, borderRadius } from '../../styles/designSystem';
 import GradientBackground from '../../components/ui/GradientBackground';
 import Card from '../../components/ui/Card';
@@ -27,14 +27,14 @@ const MealSettingsScreen: React.FC = () => {
   }, [settings]);
 
   const handleApplyPreset = (preset: 'dinnerOnly' | 'threeMeals' | 'threeMealsAndBento') => {
-    const newSettings = mealSettingsService.applyPreset(preset);
+    const newSettings = MealSettingsService.applyPreset(preset);
     setLocalSettings(newSettings);
     dispatch(setMealSettings(newSettings));
   };
 
   const handleToggleMealType = (mealType: MealType) => {
     try {
-      const newSettings = mealSettingsService.toggleMealType(localSettings, mealType);
+      const newSettings = MealSettingsService.toggleMealType(localSettings, mealType);
       setLocalSettings(newSettings);
       dispatch(setMealSettings(newSettings));
     } catch (error: any) {
@@ -48,7 +48,7 @@ const MealSettingsScreen: React.FC = () => {
       return;
     }
     try {
-      const newSettings = mealSettingsService.addCustomMealType(localSettings, customMealName.trim(), customMealEmoji.trim());
+      const newSettings = MealSettingsService.addCustomMealType(localSettings, customMealName.trim(), customMealEmoji.trim());
       setLocalSettings(newSettings);
       dispatch(setMealSettings(newSettings));
       setIsCustomMealModalVisible(false);
@@ -66,7 +66,7 @@ const MealSettingsScreen: React.FC = () => {
     }
     try {
       const updatedMeal = { ...editingCustomMeal, name: customMealName.trim(), emoji: customMealEmoji.trim() };
-      const newSettings = mealSettingsService.updateCustomMealType(localSettings, updatedMeal);
+      const newSettings = MealSettingsService.updateCustomMealType(localSettings, updatedMeal);
       setLocalSettings(newSettings);
       dispatch(setMealSettings(newSettings));
       setIsCustomMealModalVisible(false);
@@ -89,7 +89,7 @@ const MealSettingsScreen: React.FC = () => {
           style: 'destructive',
           onPress: () => {
             try {
-              const newSettings = mealSettingsService.deleteCustomMealType(localSettings, mealId);
+              const newSettings = MealSettingsService.deleteCustomMealType(localSettings, mealId);
               setLocalSettings(newSettings);
               dispatch(setMealSettings(newSettings));
             } catch (error: any) {
@@ -138,7 +138,7 @@ const MealSettingsScreen: React.FC = () => {
     return mealType.name;
   };
 
-  const orderedMealTypes = mealSettingsService.getOrderedMealTypes(localSettings);
+  const orderedMealTypes = MealSettingsService.getOrderedMealTypes(localSettings);
 
   return (
     <GradientBackground>
