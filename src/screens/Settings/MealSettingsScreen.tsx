@@ -1,285 +1,270 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Switch, TextInput, Alert, Modal } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
-import { 
-  setEnabledMealTypes, 
-  setDefaultMealTypes, 
-  addCustomMealType, 
-  removeCustomMealType,
-  applyPreset 
-} from '../../store/slices/mealSettingsSlice';
-import { MealType, CustomMealType } from '../../types';
-import { MealSettingsService, MEAL_TYPE_PRESETS, DEFAULT_MEAL_TYPES } from '../../services/mealSettingsService';
+import { setMealSettings, addCustomMealType, updateCustomMealType, deleteCustomMealType } from '../../store/slices/mealSettingsSlice';
+import { mealSettingsService } from '../../services/mealSettingsService';
 import { colors, typography, spacing, borderRadius } from '../../styles/designSystem';
+import GradientBackground from '../../components/ui/GradientBackground';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
-import GradientBackground from '../../components/ui/GradientBackground';
-import { CheckIcon, XIcon } from '../../components/ui/Icons';
+import { MealType, CustomMealType } from '../../types';
+import { v4 as uuidv4 } from 'uuid';
 
 const MealSettingsScreen: React.FC = () => {
+  const navigation = useNavigation();
   const dispatch = useDispatch();
   const { settings } = useSelector((state: RootState) => state.mealSettings);
-  const [showCustomForm, setShowCustomForm] = useState(false);
-  const [customName, setCustomName] = useState('');
-  const [customEmoji, setCustomEmoji] = useState('🍽️');
+  const [localSettings, setLocalSettings] = useState(settings);
+  const [isCustomMealModalVisible, setIsCustomMealModalVisible] = useState(false);
+  const [editingCustomMeal, setEditingCustomMeal] = useState<CustomMealType | null>(null);
+  const [customMealName, setCustomMealName] = useState('');
+  const [customMealEmoji, setCustomMealEmoji] = useState('');
 
-  const toggleMealType = (mealType: MealType) => {
-    const isEnabled = settings.enabledMealTypes.includes(mealType);
-    
-    if (isEnabled) {
-      // 最低1つは残す必要がある
-      if (settings.enabledMealTypes.length <= 1) {
-        Alert.alert('エラー', '最低1つの食事タイプを有効にしてください。');
-        return;
-      }
-      
-      const newEnabledTypes = settings.enabledMealTypes.filter(mt => mt !== mealType);
-      dispatch(setEnabledMealTypes(newEnabledTypes));
-    } else {
-      const newEnabledTypes = [...settings.enabledMealTypes, mealType];
-      dispatch(setEnabledMealTypes(newEnabledTypes));
+  useEffect(() => {
+    setLocalSettings(settings);
+  }, [settings]);
+
+  const handleApplyPreset = (preset: 'dinnerOnly' | 'threeMeals' | 'threeMealsAndBento') => {
+    const newSettings = mealSettingsService.applyPreset(preset);
+    setLocalSettings(newSettings);
+    dispatch(setMealSettings(newSettings));
+  };
+
+  const handleToggleMealType = (mealType: MealType) => {
+    try {
+      const newSettings = mealSettingsService.toggleMealType(localSettings, mealType);
+      setLocalSettings(newSettings);
+      dispatch(setMealSettings(newSettings));
+    } catch (error: any) {
+      Alert.alert('エラー', error.message);
     }
   };
 
-  const toggleDefaultMealType = (mealType: MealType) => {
-    const isDefault = settings.defaultMealTypes.includes(mealType);
-    
-    if (isDefault) {
-      const newDefaultTypes = settings.defaultMealTypes.filter(mt => mt !== mealType);
-      dispatch(setDefaultMealTypes(newDefaultTypes));
-    } else {
-      const newDefaultTypes = [...settings.defaultMealTypes, mealType];
-      dispatch(setDefaultMealTypes(newDefaultTypes));
-    }
-  };
-
-  const handleAddCustomMealType = () => {
-    if (!customName.trim()) {
-      Alert.alert('エラー', '食事名を入力してください。');
+  const handleAddCustomMeal = () => {
+    if (!customMealName.trim() || !customMealEmoji.trim()) {
+      Alert.alert('エラー', '名前と絵文字を入力してください。');
       return;
     }
-
-    const newCustomType = MealSettingsService.createCustomMealType(
-      customName.trim(),
-      customEmoji,
-      undefined,
-      settings.customMealTypes
-    );
-
-    dispatch(addCustomMealType(newCustomType));
-    setCustomName('');
-    setCustomEmoji('🍽️');
-    setShowCustomForm(false);
+    try {
+      const newSettings = mealSettingsService.addCustomMealType(localSettings, customMealName.trim(), customMealEmoji.trim());
+      setLocalSettings(newSettings);
+      dispatch(setMealSettings(newSettings));
+      setIsCustomMealModalVisible(false);
+      setCustomMealName('');
+      setCustomMealEmoji('');
+    } catch (error: any) {
+      Alert.alert('エラー', error.message);
+    }
   };
 
-  const handleRemoveCustomMealType = (customTypeId: string) => {
+  const handleUpdateCustomMeal = () => {
+    if (!editingCustomMeal || !customMealName.trim() || !customMealEmoji.trim()) {
+      Alert.alert('エラー', '名前と絵文字を入力してください。');
+      return;
+    }
+    try {
+      const updatedMeal = { ...editingCustomMeal, name: customMealName.trim(), emoji: customMealEmoji.trim() };
+      const newSettings = mealSettingsService.updateCustomMealType(localSettings, updatedMeal);
+      setLocalSettings(newSettings);
+      dispatch(setMealSettings(newSettings));
+      setIsCustomMealModalVisible(false);
+      setEditingCustomMeal(null);
+      setCustomMealName('');
+      setCustomMealEmoji('');
+    } catch (error: any) {
+      Alert.alert('エラー', error.message);
+    }
+  };
+
+  const handleDeleteCustomMeal = (mealId: string) => {
     Alert.alert(
-      '確認',
+      'カスタム食事を削除',
       'このカスタム食事タイプを削除しますか？',
       [
         { text: 'キャンセル', style: 'cancel' },
-        { 
-          text: '削除', 
+        {
+          text: '削除',
           style: 'destructive',
-          onPress: () => dispatch(removeCustomMealType(customTypeId))
-        }
+          onPress: () => {
+            try {
+              const newSettings = mealSettingsService.deleteCustomMealType(localSettings, mealId);
+              setLocalSettings(newSettings);
+              dispatch(setMealSettings(newSettings));
+            } catch (error: any) {
+              Alert.alert('エラー', error.message);
+            }
+          },
+        },
       ]
     );
   };
 
-  const handleApplyPreset = (presetKey: keyof typeof MEAL_TYPE_PRESETS) => {
-    const preset = MEAL_TYPE_PRESETS[presetKey];
-    Alert.alert(
-      '確認',
-      `「${preset.name}」プリセットを適用しますか？現在の設定は上書きされます。`,
-      [
-        { text: 'キャンセル', style: 'cancel' },
-        { 
-          text: '適用', 
-          onPress: () => dispatch(applyPreset(presetKey))
-        }
-      ]
-    );
+  const openEditCustomMealModal = (meal: CustomMealType) => {
+    setEditingCustomMeal(meal);
+    setCustomMealName(meal.name);
+    setCustomMealEmoji(meal.emoji);
+    setIsCustomMealModalVisible(true);
   };
 
-  const getMealTypeDisplayName = (mealType: MealType): string => {
-    return MealSettingsService.getMealTypeName(mealType, settings.customMealTypes);
+  const mealTypeLabels: { [key in MealType]: string } = {
+    breakfast: '朝食',
+    lunch: '昼食',
+    dinner: '夕食',
+    snack: 'おやつ',
+    bento: 'お弁当',
+    custom: 'カスタム', // これは表示しないが型定義のため
   };
 
-  const getMealTypeDisplayEmoji = (mealType: MealType): string => {
-    return MealSettingsService.getMealTypeEmoji(mealType, undefined, settings.customMealTypes);
+  const getMealTypeEmoji = (mealType: MealType | CustomMealType) => {
+    if (typeof mealType === 'string') {
+      switch (mealType) {
+        case 'breakfast': return '🍳';
+        case 'lunch': return '🥪';
+        case 'dinner': return '🍜';
+        case 'snack': return '🍪';
+        case 'bento': return '🍱';
+        default: return '🍽️';
+      }
+    }
+    return mealType.emoji;
   };
 
-  // 表示用にソートされた食事タイプ
-  const sortedMealTypes = MealSettingsService.sortMealTypes(
-    Object.keys(DEFAULT_MEAL_TYPES) as MealType[],
-    settings.customMealTypes
-  ).filter(mt => mt !== 'custom' || settings.customMealTypes.length > 0);
+  const getMealTypeName = (mealType: MealType | CustomMealType) => {
+    if (typeof mealType === 'string') {
+      return mealTypeLabels[mealType];
+    }
+    return mealType.name;
+  };
+
+  const orderedMealTypes = mealSettingsService.getOrderedMealTypes(localSettings);
 
   return (
     <GradientBackground>
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        {/* Header */}
-        <View style={styles.header}>
+        <View style={styles.statusBar} />
+        <View style={styles.headerContent}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Text style={styles.backButtonText}>← 戻る</Text>
+          </TouchableOpacity>
           <Text style={styles.title}>食事設定</Text>
-          <Text style={styles.subtitle}>管理したい食事の種類を選択してください</Text>
         </View>
 
-        {/* Quick Presets */}
-        <Card variant="elevated" padding="medium" style={styles.card}>
+        <Card variant="elevated" padding="large" style={styles.card}>
           <Text style={styles.cardTitle}>クイック設定</Text>
-          <Text style={styles.cardSubtitle}>よく使われる設定を選択できます</Text>
-          
-          <View style={styles.presetGrid}>
-            {Object.entries(MEAL_TYPE_PRESETS).map(([key, preset]) => (
-              <TouchableOpacity
-                key={key}
-                style={styles.presetButton}
-                onPress={() => handleApplyPreset(key as keyof typeof MEAL_TYPE_PRESETS)}
-              >
-                <Text style={styles.presetName}>{preset.name}</Text>
-                <Text style={styles.presetDescription}>{preset.description}</Text>
-              </TouchableOpacity>
-            ))}
+          <Text style={styles.cardSubtitle}>よく使うパターンをワンタップで設定</Text>
+          <View style={styles.presetButtons}>
+            <Button
+              title="夕食のみ"
+              onPress={() => handleApplyPreset('dinnerOnly')}
+              variant={localSettings.enabledMealTypes.length === 1 && localSettings.enabledMealTypes[0] === 'dinner' ? 'primary' : 'secondary'}
+              size="small"
+            />
+            <Button
+              title="3食管理"
+              onPress={() => handleApplyPreset('threeMeals')}
+              variant={localSettings.enabledMealTypes.includes('breakfast') && localSettings.enabledMealTypes.includes('lunch') && localSettings.enabledMealTypes.includes('dinner') && localSettings.enabledMealTypes.length === 3 ? 'primary' : 'secondary'}
+              size="small"
+            />
+            <Button
+              title="3食＋お弁当"
+              onPress={() => handleApplyPreset('threeMealsAndBento')}
+              variant={localSettings.enabledMealTypes.includes('bento') && localSettings.enabledMealTypes.length === 4 ? 'primary' : 'secondary'}
+              size="small"
+            />
           </View>
         </Card>
 
-        {/* Meal Type Selection */}
-        <Card variant="default" padding="medium" style={styles.card}>
-          <Text style={styles.cardTitle}>食事タイプの選択</Text>
-          <Text style={styles.cardSubtitle}>チェックを入れた食事タイプが有効になります</Text>
-          
-          <View style={styles.mealTypeList}>
-            {sortedMealTypes.map(mealType => (
-              <View key={mealType} style={styles.mealTypeItem}>
-                <TouchableOpacity
-                  style={styles.mealTypeButton}
-                  onPress={() => toggleMealType(mealType)}
-                >
-                  <View style={styles.mealTypeInfo}>
-                    <Text style={styles.mealTypeEmoji}>
-                      {getMealTypeDisplayEmoji(mealType)}
-                    </Text>
-                    <Text style={styles.mealTypeName}>
-                      {getMealTypeDisplayName(mealType)}
-                    </Text>
-                  </View>
-                  
-                  <View style={[
-                    styles.checkbox,
-                    settings.enabledMealTypes.includes(mealType) && styles.checkboxChecked
-                  ]}>
-                    {settings.enabledMealTypes.includes(mealType) && (
-                      <CheckIcon size={16} color={colors.textDark} />
-                    )}
-                  </View>
-                </TouchableOpacity>
-
-                {/* Default toggle */}
-                {settings.enabledMealTypes.includes(mealType) && (
-                  <TouchableOpacity
-                    style={styles.defaultToggle}
-                    onPress={() => toggleDefaultMealType(mealType)}
-                  >
-                    <Text style={[
-                      styles.defaultToggleText,
-                      settings.defaultMealTypes.includes(mealType) && styles.defaultToggleTextActive
-                    ]}>
-                      {settings.defaultMealTypes.includes(mealType) ? 'デフォルト表示' : 'デフォルト非表示'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            ))}
-          </View>
-        </Card>
-
-        {/* Custom Meal Types */}
-        <Card variant="default" padding="medium" style={styles.card}>
-          <Text style={styles.cardTitle}>カスタム食事タイプ</Text>
-          <Text style={styles.cardSubtitle}>独自の食事タイプを追加できます</Text>
-          
-          {settings.customMealTypes.map(customType => (
-            <View key={customType.id} style={styles.customTypeItem}>
-              <View style={styles.customTypeInfo}>
-                <Text style={styles.customTypeEmoji}>{customType.emoji}</Text>
-                <Text style={styles.customTypeName}>{customType.name}</Text>
-              </View>
-              <TouchableOpacity
-                style={styles.removeButton}
-                onPress={() => handleRemoveCustomMealType(customType.id)}
-              >
-                <XIcon size={16} color={colors.error} />
-              </TouchableOpacity>
+        <Card variant="default" padding="large" style={styles.card}>
+          <Text style={styles.cardTitle}>個別設定</Text>
+          <Text style={styles.cardSubtitle}>表示したい食事タイプを細かく設定</Text>
+          {['breakfast', 'lunch', 'dinner', 'snack', 'bento'].map((type: MealType) => (
+            <View key={type} style={styles.settingItem}>
+              <Text style={styles.settingItemText}>{getMealTypeEmoji(type)} {mealTypeLabels[type]}</Text>
+              <Switch
+                value={localSettings.enabledMealTypes.includes(type)}
+                onValueChange={() => handleToggleMealType(type)}
+                trackColor={{ false: colors.border, true: colors.primaryLight }}
+                thumbColor={localSettings.enabledMealTypes.includes(type) ? colors.primary : colors.textTertiary}
+              />
             </View>
           ))}
-
-          {showCustomForm ? (
-            <View style={styles.customForm}>
-              <View style={styles.formRow}>
-                <TextInput
-                  style={styles.emojiInput}
-                  value={customEmoji}
-                  onChangeText={setCustomEmoji}
-                  placeholder="🍽️"
-                  maxLength={2}
-                />
-                <TextInput
-                  style={styles.nameInput}
-                  value={customName}
-                  onChangeText={setCustomName}
-                  placeholder="食事名を入力"
-                  returnKeyType="done"
-                  onSubmitEditing={handleAddCustomMealType}
-                />
-              </View>
-              <View style={styles.formButtons}>
-                <Button
-                  title="キャンセル"
-                  onPress={() => {
-                    setShowCustomForm(false);
-                    setCustomName('');
-                    setCustomEmoji('🍽️');
-                  }}
-                  variant="secondary"
-                  size="small"
-                />
-                <Button
-                  title="追加"
-                  onPress={handleAddCustomMealType}
-                  variant="primary"
-                  size="small"
-                />
-              </View>
-            </View>
-          ) : (
-            <Button
-              title="カスタム食事タイプを追加"
-              onPress={() => setShowCustomForm(true)}
-              variant="secondary"
-              fullWidth
-            />
-          )}
         </Card>
 
-        {/* Current Settings Summary */}
-        <Card variant="default" padding="medium" style={styles.card}>
-          <Text style={styles.cardTitle}>現在の設定</Text>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>有効な食事タイプ:</Text>
-            <Text style={styles.summaryValue}>{settings.enabledMealTypes.length}個</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>デフォルト表示:</Text>
-            <Text style={styles.summaryValue}>{settings.defaultMealTypes.length}個</Text>
-          </View>
-          <View style={styles.summaryRow}>
-            <Text style={styles.summaryLabel}>カスタムタイプ:</Text>
-            <Text style={styles.summaryValue}>{settings.customMealTypes.length}個</Text>
+        <Card variant="default" padding="large" style={styles.card}>
+          <Text style={styles.cardTitle}>カスタム食事タイプ</Text>
+          <Text style={styles.cardSubtitle}>家族独自の食事タイプを追加できます</Text>
+          {localSettings.customMealTypes.map(meal => (
+            <View key={meal.id} style={styles.customMealItem}>
+              <Text style={styles.settingItemText}>{meal.emoji} {meal.name}</Text>
+              <View style={styles.customMealActions}>
+                <TouchableOpacity onPress={() => openEditCustomMealModal(meal)} style={styles.editButton}>
+                  <Text style={styles.editButtonText}>編集</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleDeleteCustomMeal(meal.id)} style={styles.deleteButton}>
+                  <Text style={styles.deleteButtonText}>削除</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+          <Button
+            title="カスタム食事タイプを追加"
+            onPress={() => {
+              setEditingCustomMeal(null);
+              setCustomMealName('');
+              setCustomMealEmoji('');
+              setIsCustomMealModalVisible(true);
+            }}
+            variant="secondary"
+            size="small"
+            style={styles.addCustomButton}
+          />
+        </Card>
+
+        <Card variant="default" padding="large" style={styles.card}>
+          <Text style={styles.cardTitle}>現在の設定サマリー</Text>
+          <Text style={styles.cardSubtitle}>有効な食事タイプ</Text>
+          <View style={styles.summaryList}>
+            {orderedMealTypes.map((meal, index) => (
+              <Text key={index} style={styles.summaryItemText}>
+                {getMealTypeEmoji(meal)} {getMealTypeName(meal)}
+              </Text>
+            ))}
           </View>
         </Card>
       </ScrollView>
+
+      {/* Custom Meal Modal */}
+      <Modal
+        visible={isCustomMealModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setIsCustomMealModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>{editingCustomMeal ? 'カスタム食事を編集' : 'カスタム食事を追加'}</Text>
+            <TextInput
+              style={styles.textInput}
+              placeholder="食事の名前 (例: 夜食)"
+              value={customMealName}
+              onChangeText={setCustomMealName}
+            />
+            <TextInput
+              style={styles.textInput}
+              placeholder="絵文字 (例: 🌙)"
+              value={customMealEmoji}
+              onChangeText={setCustomMealEmoji}
+              maxLength={2} // 絵文字は通常1-2文字
+            />
+            <View style={styles.modalButtons}>
+              <Button title="キャンセル" onPress={() => setIsCustomMealModalVisible(false)} variant="secondary" />
+              <Button title={editingCustomMeal ? '保存' : '追加'} onPress={editingCustomMeal ? handleUpdateCustomMeal : handleAddCustomMeal} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </GradientBackground>
   );
 };
@@ -289,24 +274,38 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   contentContainer: {
-    padding: spacing.lg,
-    paddingBottom: spacing.xxl,
+    paddingBottom: 120, // タブバーの高さを考慮
   },
-  header: {
-    marginBottom: spacing.xl,
-    paddingTop: spacing.xl,
+  statusBar: {
+    height: 44, // ステータスバーの高さ
+  },
+  headerContent: {
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    marginBottom: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  backButton: {
+    marginRight: spacing.md,
+    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
+  backButtonText: {
+    ...typography.callout,
+    color: colors.primary,
+    fontWeight: '600',
   },
   title: {
-    ...typography.title1,
+    ...typography.title2,
     color: colors.text,
-    marginBottom: spacing.xs,
     fontWeight: '700',
-  },
-  subtitle: {
-    ...typography.body,
-    color: colors.textSecondary,
+    flex: 1,
+    textAlign: 'center',
+    marginRight: spacing.xl, // 戻るボタン分のバランス調整
   },
   card: {
+    marginHorizontal: spacing.lg,
     marginBottom: spacing.lg,
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
   },
@@ -320,152 +319,109 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginBottom: spacing.lg,
   },
-  presetGrid: {
-    gap: spacing.sm,
-  },
-  presetButton: {
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  presetName: {
-    ...typography.headline,
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
-  presetDescription: {
-    ...typography.caption1,
-    color: colors.textSecondary,
-  },
-  mealTypeList: {
-    gap: spacing.sm,
-  },
-  mealTypeItem: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    padding: spacing.sm,
-  },
-  mealTypeButton: {
+  presetButtons: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-  },
-  mealTypeInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  mealTypeEmoji: {
-    fontSize: 24,
-    marginRight: spacing.md,
-  },
-  mealTypeName: {
-    ...typography.callout,
-    color: colors.text,
-    flex: 1,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: colors.border,
-    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.md,
     justifyContent: 'center',
   },
-  checkboxChecked: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
-  },
-  defaultToggle: {
-    marginTop: spacing.xs,
-    paddingLeft: spacing.xl,
-  },
-  defaultToggleText: {
-    ...typography.caption1,
-    color: colors.textTertiary,
-  },
-  defaultToggleTextActive: {
-    color: colors.primary,
-    fontWeight: '600',
-  },
-  customTypeItem: {
+  settingItem: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    marginBottom: spacing.sm,
-  },
-  customTypeInfo: {
-    flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  customTypeEmoji: {
-    fontSize: 20,
-    marginRight: spacing.md,
-  },
-  customTypeName: {
-    ...typography.callout,
+  settingItemText: {
+    ...typography.body,
     color: colors.text,
   },
-  removeButton: {
-    padding: spacing.xs,
-  },
-  customForm: {
-    backgroundColor: colors.surface,
-    padding: spacing.md,
-    borderRadius: borderRadius.md,
-    gap: spacing.md,
-  },
-  formRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  emojiInput: {
-    width: 60,
-    height: 40,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.sm,
-    textAlign: 'center',
-    fontSize: 20,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  nameInput: {
-    flex: 1,
-    height: 40,
-    backgroundColor: colors.background,
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.md,
-    ...typography.callout,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  formButtons: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    justifyContent: 'flex-end',
-  },
-  summaryRow: {
+  customMealItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  customMealActions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  editButton: {
+    backgroundColor: colors.secondaryLight,
+    paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
   },
-  summaryLabel: {
-    ...typography.callout,
-    color: colors.textSecondary,
-  },
-  summaryValue: {
-    ...typography.callout,
-    color: colors.text,
+  editButtonText: {
+    ...typography.caption1,
+    color: colors.secondaryDark,
     fontWeight: '600',
+  },
+  deleteButton: {
+    backgroundColor: colors.error,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    borderRadius: borderRadius.md,
+  },
+  deleteButtonText: {
+    ...typography.caption1,
+    color: colors.textDark,
+    fontWeight: '600',
+  },
+  addCustomButton: {
+    marginTop: spacing.md,
+  },
+  summaryList: {
+    gap: spacing.xs,
+  },
+  summaryItemText: {
+    ...typography.body,
+    color: colors.text,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    width: '90%',
+    maxWidth: 400,
+    shadowColor: colors.overlay,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  modalTitle: {
+    ...typography.title3,
+    color: colors.text,
+    fontWeight: '700',
+    marginBottom: spacing.lg,
+    textAlign: 'center',
+  },
+  textInput: {
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    ...typography.body,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: spacing.md,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    gap: spacing.md,
+    marginTop: spacing.md,
   },
 });
 

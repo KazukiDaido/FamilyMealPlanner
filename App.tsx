@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createStackNavigator } from '@react-navigation/stack';
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import { store, persistor } from './src/store';
@@ -10,6 +11,7 @@ import { StatusBar } from 'expo-status-bar';
 import HomeScreen from './src/screens/Home/HomeScreen';
 import SettingsScreen from './src/screens/Settings/SettingsScreen';
 import ScheduleScreen from './src/screens/Schedule/ScheduleScreen';
+import MealSettingsScreen from './src/screens/Settings/MealSettingsScreen';
 
 // アイコンのインポート
 import { HomeIcon, CalendarIcon, SettingsIcon } from './src/components/ui/Icons';
@@ -18,6 +20,17 @@ import { HomeIcon, CalendarIcon, SettingsIcon } from './src/components/ui/Icons'
 import AuthProvider from './src/components/auth/AuthProvider';
 
 const Tab = createBottomTabNavigator();
+const SettingsStack = createStackNavigator();
+
+// 設定画面のスタックナビゲーター
+function SettingsStackNavigator() {
+  return (
+    <SettingsStack.Navigator screenOptions={{ headerShown: false }}>
+      <SettingsStack.Screen name="SettingsMain" component={SettingsScreen} />
+      <SettingsStack.Screen name="MealSettings" component={MealSettingsScreen} />
+    </SettingsStack.Navigator>
+  );
+}
 
 export default function App() {
   return (
@@ -67,9 +80,9 @@ export default function App() {
                 ),
               }}
             />
-            <Tab.Screen
-              name="Settings"
-              component={SettingsScreen}
+            <Tab.Screen 
+              name="Settings" 
+              component={SettingsStackNavigator}
               options={{
                 title: '設定',
                 tabBarIcon: ({ color, size }) => (

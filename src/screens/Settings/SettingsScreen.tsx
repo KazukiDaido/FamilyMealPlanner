@@ -10,6 +10,7 @@ import {
   Switch,
   ScrollView,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
 import { clearUser, setUser, updateUser } from '../../store/slices/userSlice';
@@ -20,6 +21,7 @@ import { StorageService } from '../../services/storageService';
 import { SyncService } from '../../services/syncService';
 
 const SettingsScreen: React.FC = () => {
+  const navigation = useNavigation();
   const dispatch = useDispatch();
   const { currentUser } = useSelector((state: RootState) => state.user);
   const { currentFamily } = useSelector((state: RootState) => state.family);
@@ -243,7 +245,7 @@ const SettingsScreen: React.FC = () => {
           {renderSettingItem(
             '🍽️ 食事設定',
             '朝食・昼食・夕食などの管理設定',
-            () => Alert.alert('食事設定', '食事タイプの設定画面を開発中です')
+            () => navigation.navigate('MealSettings' as never)
           )}
           {renderSettingItem(
             '通知設定',

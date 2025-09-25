@@ -24,7 +24,17 @@ class HolidayService {
     try {
       // 内閣府の祝日CSV APIを使用
       const response = await fetch(`https://www8.cao.go.jp/chosei/shukujitsu/syukujitsu.csv`);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const csvText = await response.text();
+      
+      if (!csvText || csvText.trim() === '') {
+        console.warn('Empty CSV response, using fallback holidays');
+        return this.getFallbackHolidays(year);
+      }
       
       // CSVをパース
       const lines = csvText.split('\n');
@@ -118,5 +128,5 @@ class HolidayService {
   }
 }
 
-export const holidayService = new HolidayService()ervice();
+export const holidayService = new HolidayService();
 export type { Holiday };
