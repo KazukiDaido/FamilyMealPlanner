@@ -8,6 +8,7 @@ import {
   Modal,
   TextInput,
   Switch,
+  ScrollView,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { RootState } from '../../store';
@@ -150,135 +151,141 @@ const SettingsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* ユーザー情報（名前の簡易編集） */}
-      <View style={styles.userSection}>
-        <Text style={styles.sectionTitle}>ユーザー情報</Text>
-        <View style={styles.userCard}>
-          <Text style={styles.userName}>{currentUser?.name || '未設定'}</Text>
-          <Text style={styles.userEmail}>{currentUser?.email || '未設定'}</Text>
-          <Text style={styles.userRole}>
-            {currentUser?.role === 'admin' ? '管理者' : 'メンバー'}
-          </Text>
-          <View style={{ height: 12 }} />
-          <TouchableOpacity
-            style={[styles.modalButton, { backgroundColor: '#007AFF' }]}
-            onPress={() => {
-              let nameDraft = currentUser?.name || '';
-              Alert.prompt?.(
-                '名前の設定',
-                '通知メッセージに表示されます',
-                [
-                  {
-                    text: 'キャンセル',
-                    style: 'cancel',
-                  },
-                  {
-                    text: '保存',
-                    onPress: (text?: string) => {
-                      const name = (text || '').trim();
-                      if (!name) return;
-                      if (currentUser) {
-                        dispatch(updateUser({ name }));
-                      } else {
-                        dispatch(setUser({ id: 'local', name, email: '', role: 'member', createdAt: new Date() } as any));
-                      }
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ユーザー情報（名前の簡易編集） */}
+        <View style={styles.userSection}>
+          <Text style={styles.sectionTitle}>ユーザー情報</Text>
+          <View style={styles.userCard}>
+            <Text style={styles.userName}>{currentUser?.name || '未設定'}</Text>
+            <Text style={styles.userEmail}>{currentUser?.email || '未設定'}</Text>
+            <Text style={styles.userRole}>
+              {currentUser?.role === 'admin' ? '管理者' : 'メンバー'}
+            </Text>
+            <View style={{ height: 12 }} />
+            <TouchableOpacity
+              style={[styles.modalButton, { backgroundColor: '#007AFF' }]}
+              onPress={() => {
+                let nameDraft = currentUser?.name || '';
+                Alert.prompt?.(
+                  '名前の設定',
+                  '通知メッセージに表示されます',
+                  [
+                    {
+                      text: 'キャンセル',
+                      style: 'cancel',
                     },
-                  },
-                ],
-                'plain-text',
-                nameDraft
-              );
-            }}
-          >
-            <Text style={{ color: '#fff', fontWeight: 'bold' }}>名前を編集</Text>
-          </TouchableOpacity>
+                    {
+                      text: '保存',
+                      onPress: (text?: string) => {
+                        const name = (text || '').trim();
+                        if (!name) return;
+                        if (currentUser) {
+                          dispatch(updateUser({ name }));
+                        } else {
+                          dispatch(setUser({ id: 'local', name, email: '', role: 'member', createdAt: new Date() } as any));
+                        }
+                      },
+                    },
+                  ],
+                  'plain-text',
+                  nameDraft
+                );
+              }}
+            >
+              <Text style={{ color: '#fff', fontWeight: 'bold' }}>名前を編集</Text>
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
-      {/* 家族情報 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>家族情報</Text>
-        <View style={styles.familyCard}>
-          <Text style={styles.familyName}>{currentFamily?.name || '未設定'}</Text>
-          <Text style={styles.familyPlan}>
-            {currentFamily?.subscriptionPlan === 'free' ? '無料プラン' :
-             currentFamily?.subscriptionPlan === 'family' ? 'ファミリープラン' :
-             'プレミアムプラン'}
-          </Text>
-          <Text style={styles.familyMembers}>
-            メンバー数: {currentFamily?.members.length || 0}人
-          </Text>
+        {/* 家族情報 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>家族情報</Text>
+          <View style={styles.familyCard}>
+            <Text style={styles.familyName}>{currentFamily?.name || '未設定'}</Text>
+            <Text style={styles.familyPlan}>
+              {currentFamily?.subscriptionPlan === 'free' ? '無料プラン' :
+               currentFamily?.subscriptionPlan === 'family' ? 'ファミリープラン' :
+               'プレミアムプラン'}
+            </Text>
+            <Text style={styles.familyMembers}>
+              メンバー数: {currentFamily?.members.length || 0}人
+            </Text>
+          </View>
         </View>
-      </View>
 
-      {/* データ同期 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>データ同期</Text>
-        {renderSettingItem(
-          'QRコードで同期',
-          'QRコードを使って家族間でデータを同期',
-          () => setIsQRModalVisible(true)
-        )}
-        {renderSettingItem(
-          'データをエクスポート',
-          'データをファイルとして保存',
-          handleExportData
-        )}
-        {renderSettingItem(
-          'データをインポート',
-          '保存したデータを読み込み',
-          () => setIsImportModalVisible(true)
-        )}
-      </View>
-
-      {/* アプリ設定 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>アプリ設定</Text>
-        {renderSettingItem(
-          '通知設定',
-          'プッシュ通知の設定',
-          () => Alert.alert('通知設定', '通知設定画面を開きます')
-        )}
-        {renderSettingItem(
-          'テーマ設定',
-          'アプリのテーマを変更',
-          () => Alert.alert('テーマ設定', 'テーマ設定画面を開きます')
-        )}
-        {renderSettingItem(
-          '言語設定',
-          'アプリの言語を変更',
-          () => Alert.alert('言語設定', '言語設定画面を開きます')
-        )}
-      </View>
-
-      {/* 危険な操作 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>危険な操作</Text>
-        {renderSettingItem(
-          'ログアウト',
-          'アプリからログアウト',
-          handleLogout,
-          true
-        )}
-        {renderSettingItem(
-          'すべてのデータを削除',
-          'アプリのすべてのデータを削除',
-          handleClearAllData,
-          true
-        )}
-      </View>
-
-      {/* アプリ情報 */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>アプリ情報</Text>
-        <View style={styles.appInfoCard}>
-          <Text style={styles.appName}>家族食事スケジュール</Text>
-          <Text style={styles.appVersion}>バージョン 1.0.0</Text>
-          <Text style={styles.appDescription}>
-            家族間で食事スケジュールを共有できるアプリです。
-          </Text>
+        {/* データ同期 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>データ同期</Text>
+          {renderSettingItem(
+            'QRコードで同期',
+            'QRコードを使って家族間でデータを同期',
+            () => setIsQRModalVisible(true)
+          )}
+          {renderSettingItem(
+            'データをエクスポート',
+            'データをファイルとして保存',
+            handleExportData
+          )}
+          {renderSettingItem(
+            'データをインポート',
+            '保存したデータを読み込み',
+            () => setIsImportModalVisible(true)
+          )}
         </View>
-      </View>
+
+        {/* アプリ設定 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>アプリ設定</Text>
+          {renderSettingItem(
+            '通知設定',
+            'プッシュ通知の設定',
+            () => Alert.alert('通知設定', '通知設定画面を開きます')
+          )}
+          {renderSettingItem(
+            'テーマ設定',
+            'アプリのテーマを変更',
+            () => Alert.alert('テーマ設定', 'テーマ設定画面を開きます')
+          )}
+          {renderSettingItem(
+            '言語設定',
+            'アプリの言語を変更',
+            () => Alert.alert('言語設定', '言語設定画面を開きます')
+          )}
+        </View>
+
+        {/* 危険な操作 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>危険な操作</Text>
+          {renderSettingItem(
+            'ログアウト',
+            'アプリからログアウト',
+            handleLogout,
+            true
+          )}
+          {renderSettingItem(
+            'すべてのデータを削除',
+            'アプリのすべてのデータを削除',
+            handleClearAllData,
+            true
+          )}
+        </View>
+
+        {/* アプリ情報 */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>アプリ情報</Text>
+          <View style={styles.appInfoCard}>
+            <Text style={styles.appName}>家族食事スケジュール</Text>
+            <Text style={styles.appVersion}>バージョン 1.0.0</Text>
+            <Text style={styles.appDescription}>
+              家族間で食事スケジュールを共有できるアプリです。
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
 
       {/* QRコード同期モーダル */}
       <Modal
@@ -412,6 +419,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  scrollView: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 100, // タブバーとの余白
+  },
   section: {
     marginBottom: 24,
     paddingHorizontal: 16,
@@ -425,7 +438,7 @@ const styles = StyleSheet.create({
   userSection: {
     marginBottom: 24,
     paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingTop: 60, // ステータスバーとの余白を追加
   },
   userCard: {
     backgroundColor: '#fff',

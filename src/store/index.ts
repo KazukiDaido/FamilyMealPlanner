@@ -9,12 +9,13 @@ import familySlice from './slices/familySlice';
 import mealSlice from './slices/mealSlice';
 import shoppingSlice from './slices/shoppingSlice';
 import attendanceSlice from './slices/attendanceSlice';
+import mealSettingsSlice from './slices/mealSettingsSlice';
 
 // Redux Persist設定
 const persistConfig = {
   key: 'root',
   storage: AsyncStorage,
-  whitelist: ['user', 'family'], // 永続化するスライス
+  whitelist: ['user', 'family', 'mealSettings'], // 永続化するスライス
 };
 
 // ルートリデューサー
@@ -24,6 +25,7 @@ const rootReducer = combineReducers({
   meals: mealSlice,
   attendance: attendanceSlice,
   shopping: shoppingSlice,
+  mealSettings: mealSettingsSlice, // 追加
 });
 
 // 永続化されたリデューサー

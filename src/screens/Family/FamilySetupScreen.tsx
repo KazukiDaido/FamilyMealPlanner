@@ -129,17 +129,18 @@ const FamilySetupScreen: React.FC = () => {
   if (step === 'name') {
     return (
       <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-        <Card variant="elevated" padding="large">
+        <View style={styles.safeArea} />
+        <Card variant="elevated" padding="large" style={styles.welcomeCard}>
           <Text style={styles.title}>ようこそ！</Text>
-          <Text style={styles.subtitle}>まず、あなたの名前を教えてください</Text>
+          <Text style={styles.subtitle}>家族で呼び合う名前を教えてください</Text>
           
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>お名前</Text>
+            <Text style={styles.inputLabel}>呼び名・ニックネーム</Text>
             <TextInput
               style={styles.textInput}
               value={userName}
               onChangeText={setUserName}
-              placeholder="山田太郎"
+              placeholder="例: たろう、ママ、おじいちゃん"
               autoCapitalize="none"
               autoCorrect={false}
             />
@@ -159,6 +160,7 @@ const FamilySetupScreen: React.FC = () => {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+      <View style={styles.safeArea} />
       <Card variant="elevated" padding="large" style={styles.card}>
         <Text style={styles.title}>家族の設定</Text>
         <Text style={styles.subtitle}>新しい家族を作成するか、既存の家族に参加してください</Text>
@@ -225,6 +227,13 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: spacing.lg,
     paddingBottom: spacing.xxl,
+  },
+  safeArea: {
+    height: 60, // ステータスバー + 余白
+  },
+  welcomeCard: {
+    marginTop: spacing.xl,
+    marginBottom: spacing.lg,
   },
   card: {
     marginBottom: spacing.lg,

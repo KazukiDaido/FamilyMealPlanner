@@ -7,20 +7,41 @@ export interface User {
   createdAt: Date;
 }
 
+// 家族の食事設定
+export interface FamilyMealSettings {
+  enabledMealTypes: MealType[]; // 有効な食事タイプ
+  customMealTypes: CustomMealType[]; // カスタム食事タイプ
+  defaultMealTypes: MealType[]; // デフォルトで表示する食事タイプ
+}
+
 // 家族情報
 export interface Family {
   id: string;
   name: string;
   members: User[];
+  mealSettings: FamilyMealSettings;
   createdAt: Date;
   subscriptionPlan: 'free' | 'family' | 'premium';
+}
+
+// 食事の種類
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'bento' | 'custom';
+
+// カスタム食事タイプ
+export interface CustomMealType {
+  id: string;
+  name: string; // 例: "お弁当", "おやつ", "夜食"
+  emoji: string; // 例: "🍱", "🍪", "🌙"
+  order: number; // 表示順序
+  isActive: boolean;
 }
 
 // 食事スケジュール
 export interface MealSchedule {
   id: string;
   date: string; // YYYY-MM-DD形式
-  mealType: 'breakfast' | 'lunch' | 'dinner';
+  mealType: MealType;
+  customMealTypeId?: string; // カスタム食事の場合
   title: string;
   description?: string;
   ingredients: string[];
@@ -35,7 +56,8 @@ export type AttendanceStatus = 'need' | 'skip';
 export interface Attendance {
   id: string;
   date: string; // YYYY-MM-DD
-  mealType: 'dinner';
+  mealType: MealType;
+  customMealTypeId?: string; // カスタム食事の場合
   userId: string;
   status: AttendanceStatus;
   updatedAt: Date;

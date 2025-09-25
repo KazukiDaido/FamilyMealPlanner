@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { View, StyleSheet, Platform } from 'react-native';
 import { colors } from '../../styles/designSystem';
 
 interface GradientBackgroundProps {
@@ -14,15 +13,21 @@ const GradientBackground: React.FC<GradientBackgroundProps> = ({
   colors: gradientColors = colors.backgroundGradient,
   style 
 }) => {
+  // Web環境ではCSS gradientを使用
+  const webGradientStyle = Platform.OS === 'web' ? {
+    background: `linear-gradient(135deg, ${gradientColors[0]} 0%, ${gradientColors[1]} 100%)`,
+  } : {};
+
   return (
-    <LinearGradient
-      colors={gradientColors}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.container, style]}
+    <View
+      style={[
+        styles.container, 
+        Platform.OS === 'web' ? webGradientStyle : { backgroundColor: gradientColors[0] },
+        style
+      ]}
     >
       {children}
-    </LinearGradient>
+    </View>
   );
 };
 

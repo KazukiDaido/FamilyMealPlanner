@@ -1,56 +1,56 @@
-// Refined Design System - Natural & Sophisticated
+// Modern Pastel Design System
 export const colors = {
-  // Primary - Sage Green
-  primary: '#6B7C32',      // Natural sage
-  primaryDark: '#4A5A1F',
-  primaryLight: '#8FA047',
+  // Primary - Soft Mint Green
+  primary: '#A8E6CF',      // Pastel mint
+  primaryDark: '#7DD3AE',
+  primaryLight: '#C4F2E0',
   
-  // Secondary - Warm Brown
-  secondary: '#8B6F47',    // Earthy brown
-  secondaryLight: '#A6885B',
-  secondaryDark: '#6B4E2F',
+  // Secondary - Lavender
+  secondary: '#D4B5F7',    // Soft lavender
+  secondaryLight: '#E6D0FF',
+  secondaryDark: '#C19EE0',
   
-  // Accent - Soft Orange
-  accent: '#D4A574',       // Warm beige
-  accentLight: '#E6B882',
-  accentDark: '#C1955F',
+  // Accent - Peach
+  accent: '#FFB3BA',       // Soft peach
+  accentLight: '#FFD1D6',
+  accentDark: '#FF9BA5',
   
-  // Semantic - Muted & Natural
-  success: '#7BA05B',      // Forest green
-  warning: '#D4A574',      // Warm beige
-  error: '#B85450',        // Muted red
+  // Semantic - Pastel versions
+  success: '#A8E6CF',      // Mint green
+  warning: '#FFD93D',      // Soft yellow
+  error: '#FFB3BA',        // Soft pink/coral
   
-  // Neutral - Modern gradients
-  background: '#F8F6F3',   // Fallback
-  backgroundGradient: ['#FDFCFB', '#E2D1C3'], // Subtle warm gradient
-  backgroundDark: '#2C2B28',
+  // Neutral - Clean pastels
+  background: '#FEFEFE',   // Pure white
+  backgroundGradient: ['#F8F9FF', '#F0F4FF'], // Soft blue-white gradient
+  backgroundDark: '#2C2C2E',
   
   surface: '#FFFFFF',
-  surfaceDark: '#3A3834',
+  surfaceDark: '#1C1C1E',
   
-  // Text - Natural tones
-  text: '#2C2B28',         // Dark brown-gray
-  textSecondary: '#5A5956',
-  textTertiary: '#8A8986',
+  // Text - Soft but readable
+  text: '#2C2C2E',         // Soft dark gray
+  textSecondary: '#6C6C70',
+  textTertiary: '#A1A1A6',
   
-  textDark: '#F8F6F3',
-  textSecondaryDark: '#D4D2CF',
-  textTertiaryDark: '#8A8986',
+  textDark: '#FFFFFF',
+  textSecondaryDark: '#E5E5E7',
+  textTertiaryDark: '#A1A1A6',
   
-  // Attendance - Natural states
+  // Attendance - Pastel states
   attendance: {
-    present: '#7BA05B',    // Forest green
-    absent: '#B85450',     // Muted red
-    unknown: '#8A8986',    // Warm gray
+    present: '#A8E6CF',    // Mint green
+    absent: '#FFB3BA',     // Soft pink
+    unknown: '#E8E8ED',    // Light gray
   },
   
   // Borders
-  border: '#E0DED9',
-  borderDark: '#4A4843',
+  border: '#E5E5E7',
+  borderDark: '#38383A',
   
   // Subtle overlays
-  overlay: 'rgba(44, 43, 40, 0.1)',
-  overlayDark: 'rgba(248, 246, 243, 0.1)',
+  overlay: 'rgba(0, 0, 0, 0.05)',
+  overlayDark: 'rgba(255, 255, 255, 0.1)',
 };
 
 export const typography = {
