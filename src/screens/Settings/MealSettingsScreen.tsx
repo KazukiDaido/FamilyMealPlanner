@@ -26,7 +26,7 @@ const MealSettingsScreen: React.FC = () => {
     setLocalSettings(settings);
   }, [settings]);
 
-  const handleApplyPreset = (preset: 'dinnerOnly' | 'threeMeals' | 'threeMealsAndBento') => {
+  const handleApplyPreset = (preset: 'dinnerOnly' | 'threeMeals' | 'withBento') => {
     const newSettings = MealSettingsService.applyPreset(preset);
     setLocalSettings(newSettings);
     dispatch(setMealSettings(newSettings));
@@ -169,7 +169,7 @@ const MealSettingsScreen: React.FC = () => {
             />
             <Button
               title="3食＋お弁当"
-              onPress={() => handleApplyPreset('threeMealsAndBento')}
+              onPress={() => handleApplyPreset('withBento')}
               variant={localSettings.enabledMealTypes.includes('bento') && localSettings.enabledMealTypes.length === 4 ? 'primary' : 'secondary'}
               size="small"
             />
