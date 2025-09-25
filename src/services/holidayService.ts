@@ -118,5 +118,5 @@ class HolidayService {
   }
 }
 
-export const holidayService = new HolidayService();
+export const holidayService = new HolidayService()ervice();
 export type { Holiday };
