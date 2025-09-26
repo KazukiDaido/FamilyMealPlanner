@@ -394,8 +394,6 @@ const ScheduleScreen: React.FC = () => {
                         )}
                       </View>
                     </View>
-                               </View>
-                             </View>
                            );
                          })}
                        </View>
