@@ -43,18 +43,28 @@ const HomeScreen: React.FC = () => {
     loadFamilyMembers();
   }, [firebaseUser?.familyId]);
 
-  const buildMessage = (mealType: MealType, needMeal: boolean) => {
+  const buildMessage = (mealType: MealType, needMeal: boolean, customMealId?: string) => {
     const today = new Date();
     const dateText = `${today.getMonth() + 1}/${today.getDate()}`;
-    const mealName = MealSettingsService.getMealTypeName(mealType, mealSettings.customMealTypes);
-    const mealEmoji = MealSettingsService.getMealTypeEmoji(mealType, undefined, mealSettings.customMealTypes);
+    
+    let mealName: string;
+    let mealEmoji: string;
+    
+    if (mealType === 'custom' && customMealId) {
+      const customMeal = mealSettings.customMealTypes.find(m => m.id === customMealId);
+      mealName = customMeal?.name || 'カスタム食事';
+      mealEmoji = customMeal?.emoji || '🍽️';
+    } else {
+      mealName = MealSettingsService.getMealTypeName(mealType, mealSettings.customMealTypes);
+      mealEmoji = MealSettingsService.getMealTypeEmoji(mealType, undefined, mealSettings.customMealTypes);
+    }
     
     return needMeal
       ? `${displayName}です。${dateText}の${mealName}${mealEmoji}、必要です！`
       : `${displayName}です。${dateText}の${mealName}${mealEmoji}、今日はいりません！`;
   };
 
-  const handleAttendanceUpdate = async (mealType: MealType, needMeal: boolean) => {
+  const handleAttendanceUpdate = async (mealType: MealType, needMeal: boolean, customMealId?: string) => {
     if (!firebaseUser?.id) return;
 
     setIsLoading(true);
@@ -66,7 +76,7 @@ const HomeScreen: React.FC = () => {
       await updateAttendance(today, mealType, status);
 
       // 共有メッセージも送信
-      const message = buildMessage(mealType, needMeal);
+      const message = buildMessage(mealType, needMeal, customMealId);
 
       // Web環境での共有処理
       if (typeof window !== 'undefined' && navigator.share) {
@@ -126,48 +136,58 @@ const HomeScreen: React.FC = () => {
           </View>
         </View>
 
-            {/* Quick Actions for Default Meal Types */}
-            {mealSettings.defaultMealTypes.map((mealType) => {
-              const mealName = MealSettingsService.getMealTypeName(mealType, mealSettings.customMealTypes);
-              const mealEmoji = MealSettingsService.getMealTypeEmoji(mealType, undefined, mealSettings.customMealTypes);
-              
-              return (
-                <Card key={mealType} variant="elevated" padding="large" style={styles.actionCard}>
-                  <Text style={styles.cardTitle}>{mealEmoji} {mealName}</Text>
-                  <Text style={styles.cardSubtitle}>ワンタップで家族に連絡</Text>
+            {/* Quick Actions for Enabled Meal Types */}
+            {MealSettingsService.getOrderedMealTypes(mealSettings)
+              .filter(meal => mealSettings.enabledMealTypes.includes(meal.id as any))
+              .map((meal) => {
+                const mealType = meal.id as MealType;
+                const isCustomMeal = meal.id.startsWith('custom_');
+                
+                return (
+                  <Card key={meal.id} variant="elevated" padding="large" style={styles.actionCard}>
+                    <Text style={styles.cardTitle}>{meal.emoji} {meal.name}</Text>
+                    <Text style={styles.cardSubtitle}>ワンタップで家族に連絡</Text>
 
-                  <View style={styles.buttonContainer}>
-                    <Button
-                      title="今日はいらない"
-                      onPress={() => {
-                        showNameTip();
-                        handleAttendanceUpdate(mealType, false);
-                      }}
-                      variant="secondary"
-                      size="large"
-                      style={styles.actionButton}
-                      icon={<XIcon size={20} color={colors.error} />}
-                      loading={isLoading}
-                      disabled={isLoading}
-                    />
+                    <View style={styles.buttonContainer}>
+                      <Button
+                        title="今日はいらない"
+                        onPress={() => {
+                          showNameTip();
+                          handleAttendanceUpdate(
+                            isCustomMeal ? 'custom' : mealType, 
+                            false, 
+                            isCustomMeal ? meal.id : undefined
+                          );
+                        }}
+                        variant="secondary"
+                        size="large"
+                        style={styles.actionButton}
+                        icon={<XIcon size={20} color={colors.error} />}
+                        loading={isLoading}
+                        disabled={isLoading}
+                      />
 
-                    <Button
-                      title="いるよ"
-                      onPress={() => {
-                        showNameTip();
-                        handleAttendanceUpdate(mealType, true);
-                      }}
-                      variant="primary"
-                      size="large"
-                      style={styles.actionButton}
-                      icon={<CheckIcon size={20} color={colors.textDark} />}
-                      loading={isLoading}
-                      disabled={isLoading}
-                    />
-                  </View>
-                </Card>
-              );
-            })}
+                      <Button
+                        title="いるよ"
+                        onPress={() => {
+                          showNameTip();
+                          handleAttendanceUpdate(
+                            isCustomMeal ? 'custom' : mealType, 
+                            true, 
+                            isCustomMeal ? meal.id : undefined
+                          );
+                        }}
+                        variant="primary"
+                        size="large"
+                        style={styles.actionButton}
+                        icon={<CheckIcon size={20} color={colors.textDark} />}
+                        loading={isLoading}
+                        disabled={isLoading}
+                      />
+                    </View>
+                  </Card>
+                );
+              })}
 
       {/* Family Status */}
       {familyMembers.length > 0 && (

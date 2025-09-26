@@ -320,17 +320,19 @@ const ScheduleScreen: React.FC = () => {
                 {isToday_ && <View style={styles.todayBadge}><Text style={styles.todayBadgeText}>今日</Text></View>}
               </View>
 
-              {/* Meal Types */}
-              <View style={styles.mealsContainer}>
-                {mealSettings.enabledMealTypes.map((mealType) => {
-                  const attendingMembers = getAttendingMembers(date, mealType);
-                  const absentMembers = getAbsentMembers(date, mealType);
-                  const mealName = MealSettingsService.getMealTypeName(mealType, mealSettings.customMealTypes);
-                  const mealEmoji = MealSettingsService.getMealTypeEmoji(mealType, undefined, mealSettings.customMealTypes);
+                       {/* Meal Types */}
+                       <View style={styles.mealsContainer}>
+                         {MealSettingsService.getOrderedMealTypes(mealSettings)
+                           .filter(meal => mealSettings.enabledMealTypes.includes(meal.id as any))
+                           .map((meal) => {
+                             const mealType = meal.id as MealType;
+                             const isCustomMeal = meal.id.startsWith('custom_');
+                             const attendingMembers = getAttendingMembers(date, isCustomMeal ? 'custom' : mealType);
+                             const absentMembers = getAbsentMembers(date, isCustomMeal ? 'custom' : mealType);
 
-                  return (
-                    <View key={mealType} style={styles.mealSection}>
-                      <Text style={styles.mealTitle}>{mealEmoji} {mealName}</Text>
+                             return (
+                               <View key={meal.id} style={styles.mealSection}>
+                                 <Text style={styles.mealTitle}>{meal.emoji} {meal.name}</Text>
                       
                       {/* Attendance Status */}
                       <View style={styles.attendanceStatus}>
@@ -343,16 +345,16 @@ const ScheduleScreen: React.FC = () => {
                             </View>
                             <View style={styles.membersList}>
                               {attendingMembers.map(member => (
-                                <TouchableOpacity
-                                  key={member.id}
-                                  style={[styles.memberChip, styles.attendingChip]}
-                                  onPress={async () => {
-                                    await updateAttendance(date, mealType, 'absent');
-                                  }}
-                                >
-                                  <Avatar name={member.name} size="small" />
-                                  <Text style={styles.memberChipText}>{member.name}</Text>
-                                </TouchableOpacity>
+                                 <TouchableOpacity
+                                   key={member.id}
+                                   style={[styles.memberChip, styles.attendingChip]}
+                                   onPress={async () => {
+                                     await updateAttendance(date, isCustomMeal ? 'custom' : mealType, 'absent');
+                                   }}
+                                 >
+                                   <Avatar name={member.name} size="small" />
+                                   <Text style={styles.memberChipText}>{member.name}</Text>
+                                 </TouchableOpacity>
                               ))}
                             </View>
                           </View>
@@ -367,16 +369,16 @@ const ScheduleScreen: React.FC = () => {
                             </View>
                             <View style={styles.membersList}>
                               {absentMembers.map(member => (
-                                <TouchableOpacity
-                                  key={member.id}
-                                  style={[styles.memberChip, styles.absentChip]}
-                                  onPress={async () => {
-                                    await updateAttendance(date, mealType, 'present');
-                                  }}
-                                >
-                                  <Avatar name={member.name} size="small" />
-                                  <Text style={styles.memberChipText}>{member.name}</Text>
-                                </TouchableOpacity>
+                               <TouchableOpacity
+                                 key={member.id}
+                                 style={[styles.memberChip, styles.absentChip]}
+                                 onPress={async () => {
+                                   await updateAttendance(date, isCustomMeal ? 'custom' : mealType, 'present');
+                                 }}
+                               >
+                                 <Avatar name={member.name} size="small" />
+                                 <Text style={styles.memberChipText}>{member.name}</Text>
+                               </TouchableOpacity>
                               ))}
                             </View>
                           </View>
@@ -392,9 +394,11 @@ const ScheduleScreen: React.FC = () => {
                         )}
                       </View>
                     </View>
-                  );
-                })}
-              </View>
+                               </View>
+                             </View>
+                           );
+                         })}
+                       </View>
             </Card>
           );
         })
